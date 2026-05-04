@@ -1,0 +1,22 @@
+{
+    "experiment_name": "swimsync-lap-time-seconds",
+    "models": [
+        {
+            "name": "RandomForest",
+            "mae": 3.5065000000000013,
+            "rmse": 3.8121955603038025,
+            "r2": 0.3981082588287288,
+            "mape": 6.535183602844626
+        },
+        {
+            "name": "GradientBoosting",
+            "mae": 3.147715680992371,
+            "rmse": 3.6722054357948375,
+            "r2": 0.44150153990111074,
+            "mape": 5.9980336764648845
+        }
+    ],
+    "best_model": "GradientBoosting",
+    "best_metric_name": "rmse",
+    "best_metric_value": 3.6722054357948375
+}

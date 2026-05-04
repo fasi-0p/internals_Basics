@@ -1,52 +1,72 @@
 import os
+import argparse
 import pandas as pd
-import mlflow
-import click
 import json
+import mlflow
 
-# Set MLflow tracking URI
-mlflow.set_tracking_uri("file:./mlruns")
-
-@click.command()
-@click.option("--data-path", default=os.path.join("MLOPs_Lab_CIE", "data", "new_data.csv"), help="Path to the new data for prediction.")
-def predict(data_path):
+def predict():
     """
-    Loads the 'Staging' model from MLflow and makes predictions on new data.
+    Loads the best model from a specific run and makes a prediction
+    based on command-line arguments.
     """
-    print("Starting prediction process...")
-    model_name = "cie-lab-model"
-    stage = 'Staging'
+    print("Starting Task 2: Prediction CLI")
+    
+    # MLflow configuration
+    mlflow.set_tracking_uri("file:./mlruns")
 
+    # --- Load the best model from the previous step ---
+    run_id_path = os.path.join("MLOPs_Lab_CIE", "results", "best_model_run_id.json")
+    with open(run_id_path, 'r') as f:
+        best_model_info = json.load(f)
+    
+    run_id = best_model_info["best_model_run_id"]
+    model_name = best_model_info["best_model_name"]
+    
+    # Load the model artifact from the specific run
     try:
-        # Load the model from the Staging environment
-        model = mlflow.sklearn.load_model(
-            model_uri=f"models:/{model_name}/{stage}"
-        )
-        print(f"Model '{model_name}' (Stage: {stage}) loaded successfully.")
+        model_uri = f"runs:/{run_id}/{model_name}"
+        model = mlflow.sklearn.load_model(model_uri)
+        print(f"Loaded model '{model_name}' from run ID '{run_id}'")
     except Exception as e:
         print(f"Error loading model: {e}")
-        print("Please ensure a model has been trained, registered, and promoted to Staging.")
         return
+
+    # --- Argument parsing for prediction input ---
+    parser = argparse.ArgumentParser(description="SwimSync Lap Time Predictor")
+    parser.add_argument("--stroke_rate", type=float, required=True)
+    parser.add_argument("--drag_coefficient", type=float, required=True)
+    parser.add_argument("--turn_time_ms", type=float, required=True)
+    parser.add_argument("--pool_length_m", type=float, required=True)
+    args = parser.parse_args()
+
+    # --- Create a DataFrame for prediction ---
+    input_data = {
+        "stroke_rate": [args.stroke_rate],
+        "drag_coefficient": [args.drag_coefficient],
+        "turn_time_ms": [args.turn_time_ms],
+        "pool_length_m": [args.pool_length_m]
+    }
+    input_df = pd.DataFrame(input_data)
+
+    # --- Make prediction ---
+    prediction = model.predict(input_df)[0]
+    print(f"Prediction for input data: {prediction}")
+
+    # --- Save results for Task 2 ---
+    test_input = vars(args) # Convert argparse namespace to dict
+    output = {
+        "image_name": "swimsync-predictor",
+        "image_tag": "v1",
+        "base_image": "python:3.12-slim",
+        "test_input": test_input,
+        "prediction": prediction
+    }
     
-    if not os.path.exists(data_path):
-        print(f"Error: Data file not found at '{data_path}'.")
-        return
-        
-    # Load new data
-    new_data = pd.read_csv(data_path)
-    
-    # Make predictions
-    predictions = model.predict(new_data)
-    
-    print("\nPredictions:")
-    print(predictions)
-    
-    # Save predictions to a file
-    output_path = os.path.join("MLOPs_Lab_CIE", "results", "step4_s7.json")
+    output_path = os.path.join("MLOPs_Lab_CIE", "results", "step2_s3.json")
     with open(output_path, 'w') as f:
-        json.dump(predictions.tolist(), f)
+        json.dump(output, f, indent=4)
         
-    print(f"\nPredictions saved to '{output_path}'.")
+    print(f"Task 2 results saved to '{output_path}'")
 
 if __name__ == "__main__":
     predict()
