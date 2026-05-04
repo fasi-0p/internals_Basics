@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+venv/
+__pycache__/
+*.pyc
+.env
+
+# MLflow
+/mlruns/
+.mlflow-props
+
+# IDE specific
+.vscode/
+.idea/
